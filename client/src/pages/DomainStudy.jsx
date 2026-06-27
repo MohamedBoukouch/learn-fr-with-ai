@@ -14,7 +14,8 @@ import { getLevelStyle } from '../utils/constants';
 const DomainStudy = () => {
   const { domainId } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isRtl = i18n.language === 'ar';
   
   const [phrases, setPhrases] = useState([]);
   const [domainInfo, setDomainInfo] = useState(null);
@@ -100,7 +101,7 @@ const DomainStudy = () => {
           className="flex flex-col items-center gap-4"
         >
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-          <p className="font-black text-blue-600 uppercase tracking-widest text-xs">Préparation de la leçon...</p>
+          <p className="font-black text-blue-600 uppercase tracking-widest text-xs">{t('lesson_prep')}</p>
         </motion.div>
       </div>
     );
@@ -113,10 +114,10 @@ const DomainStudy = () => {
           <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
             <BookOpen className="text-gray-300" size={40} />
           </div>
-          <h2 className="text-2xl font-black text-gray-900 mb-2">Pas encore de contenu</h2>
-          <p className="text-gray-500 mb-8 max-w-sm">Ce domaine n'a pas encore de phrases à apprendre. Revenez plus tard!</p>
+          <h2 className="text-2xl font-black text-gray-900 mb-2">{t('no_content_yet')}</h2>
+          <p className="text-gray-500 mb-8 max-w-sm">{t('domain_no_content_desc')}</p>
           <button onClick={() => navigate(-1)} className="px-8 py-3 bg-gray-900 text-white rounded-2xl font-bold">
-            Retour
+            {t('back')}
           </button>
         </div>
       </Layout>
@@ -130,15 +131,15 @@ const DomainStudy = () => {
 
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto space-y-8 pb-12">
+      <div className="max-w-4xl mx-auto space-y-8 pb-12" dir={isRtl ? 'rtl' : 'ltr'}>
         {/* Top Navigation */}
         <div className="flex items-center justify-between">
           <button 
             onClick={() => navigate(-1)}
             className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors font-bold group"
           >
-            <ChevronLeft size={20} className="group-hover:-translate-x-1 transition-transform" />
-            Quitter
+            <ChevronLeft size={20} className="group-hover:ltr:-translate-x-1 group-hover:rtl:translate-x-1 rtl:rotate-180 transition-transform" />
+            {t('quit')}
           </button>
           
           <div className="flex flex-col items-center gap-1">
@@ -148,7 +149,7 @@ const DomainStudy = () => {
             </h2>
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">
-                {currentIndex + 1} sur {phrases.length}
+                {currentIndex + 1} {t('out_of')} {phrases.length}
               </span>
             </div>
           </div>
@@ -195,7 +196,7 @@ const DomainStudy = () => {
                     className="px-6 py-4 rounded-2xl bg-gray-50 text-gray-400 font-black text-sm hover:bg-gray-100 transition-colors flex items-center gap-2"
                   >
                     <Music size={16} />
-                    Lentement
+                    {t('slowly')}
                   </button>
                 </div>
               </div>
@@ -216,7 +217,7 @@ const DomainStudy = () => {
                 className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-blue-50 text-blue-600 font-black text-xs uppercase tracking-widest hover:bg-blue-100 transition-colors"
               >
                 <Info size={16} />
-                {showVocab ? 'Masquer Vocabulaire' : 'Détails Vocabulaire'}
+                {showVocab ? t('hide_vocab') : t('show_vocab')}
               </button>
             </motion.div>
           </AnimatePresence>
@@ -262,8 +263,8 @@ const DomainStudy = () => {
             disabled={currentIndex === 0}
             className="flex-1 py-5 rounded-[2rem] bg-white border border-gray-100 text-gray-400 font-black uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-gray-50 transition-all disabled:opacity-20 disabled:cursor-not-allowed"
           >
-            <ChevronLeft size={24} />
-            Précédent
+            <ChevronLeft size={24} className="rtl:rotate-180" />
+            {t('previous')}
           </button>
 
           <button
@@ -273,12 +274,12 @@ const DomainStudy = () => {
           >
             {currentIndex < phrases.length - 1 ? (
               <>
-                Suivant
-                <ChevronRight size={24} className="group-hover:translate-x-1 transition-transform" />
+                {t('next')}
+                <ChevronRight size={24} className="group-hover:ltr:translate-x-1 group-hover:rtl:-translate-x-1 rtl:rotate-180 transition-transform" />
               </>
             ) : (
               <>
-                Terminer & Quiz
+                {t('finish_and_quiz')}
                 <Award size={24} className="group-hover:rotate-12 transition-transform" />
               </>
             )}

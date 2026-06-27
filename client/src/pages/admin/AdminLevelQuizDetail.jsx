@@ -61,11 +61,20 @@ const AdminLevelQuizDetail = () => {
       
       // Setup preview quiz
       const nextQuizNum = quizzes.length + 1;
+      const mapType = (type) => {
+        if (!type) return 'MCQ';
+        const t = type.toString().toUpperCase();
+        if (t.includes('MCQ')) return 'MCQ';
+        if (t.includes('FILL') || t.includes('BLANK')) return 'FILL_BLANK';
+        if (t.includes('MATCH')) return 'MATCHING';
+        return 'MCQ';
+      };
+
       setAiPreviewQuiz({
         title: `Quiz ${nextQuizNum}`,
         questions: generated.map(q => ({
           frenchText: q.frenchText || '',
-          type: q.type || 'MCQ',
+          type: mapType(q.type),
           options: q.options || ['', '', '', ''],
           correctAnswer: q.correctAnswer || ''
         }))

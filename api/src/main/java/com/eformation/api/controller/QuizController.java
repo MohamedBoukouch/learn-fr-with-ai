@@ -31,6 +31,13 @@ public class QuizController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/{quizId}")
+    public ResponseEntity<Quiz> getQuizById(@PathVariable Long quizId) {
+        return quizRepository.findById(quizId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/{quizId}/submit")
     public ResponseEntity<?> submitQuiz(@PathVariable Long quizId, @RequestBody Map<Long, String> answers) {
         Quiz quiz = quizRepository.findById(quizId)

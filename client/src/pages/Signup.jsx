@@ -6,8 +6,10 @@ import { UserPlus } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Signup = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const isRtl = i18n.language === 'ar';
+
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -28,7 +30,7 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 to-purple-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-600 to-purple-900 p-4" dir={isRtl ? 'rtl' : 'ltr'}>
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -50,7 +52,7 @@ const Signup = () => {
 
         {success && (
           <div className="bg-green-50 text-green-600 p-3 rounded-lg mb-6 text-sm border border-green-100">
-            Inscription réussie ! Redirection vers la page de connexion...
+            {t('signup_success')}
           </div>
         )}
 
@@ -94,7 +96,7 @@ const Signup = () => {
         </form>
 
         <p className="mt-8 text-center text-sm text-gray-600">
-          Vous avez déjà un compte ?{' '}
+          {t('already_have_account')}{' '}
           <Link to="/login" className="text-indigo-600 font-bold hover:underline">
             {t('login')}
           </Link>

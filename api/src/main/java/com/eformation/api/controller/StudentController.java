@@ -51,6 +51,7 @@ public class StudentController {
         long totalDomains = domainRepository.count();
         long completedDomains = results.stream()
                 .filter(QuizResult::isPassed)
+                .filter(r -> r.getQuiz() != null && r.getQuiz().getDomain() != null)
                 .map(r -> r.getQuiz().getDomain().getId())
                 .distinct()
                 .count();
@@ -65,17 +66,40 @@ public class StudentController {
         Map<String, Object> lastActivity = new HashMap<>();
         if (!results.isEmpty()) {
             QuizResult last = results.get(results.size() - 1);
-            lastActivity.put("domainName", last.getQuiz().getDomain().getName());
-            lastActivity.put("date", last.getCompletedAt());
+            if (last.getQuiz() != null) {
+                if (last.getQuiz().getDomain() != null) {
+                    lastActivity.put("domainName", last.getQuiz().getDomain().getName());
+                } else {
+                    lastActivity.put("domainName", "Quiz: " + last.getQuiz().getTitle());
+                }
+                lastActivity.put("date", last.getCompletedAt());
+            }
         }
 
-        // Calculate Level Progress
+        // Calculate Level Progress optimized using bulk queries
+        List<Object[]> totalPhrasesRaw = phraseRepository.countPhrasesGroupByDomainId();
+        Map<Long, Long> totalPhrasesByDomain = new HashMap<>();
+        for (Object[] row : totalPhrasesRaw) {
+            totalPhrasesByDomain.put((Long) row[0], (Long) row[1]);
+        }
+
+        List<Object[]> completedPhrasesRaw = phraseProgressRepository.countCompletedPhrasesGroupByDomainId(user.getId());
+        Map<Long, Long> completedPhrasesByDomain = new HashMap<>();
+        for (Object[] row : completedPhrasesRaw) {
+            completedPhrasesByDomain.put((Long) row[0], (Long) row[1]);
+        }
+
+        List<com.eformation.api.model.Level> levels = levelRepository.findAll();
+        List<com.eformation.api.model.Domain> allDomains = domainRepository.findAll();
+        Map<Long, List<com.eformation.api.model.Domain>> domainsByLevel = allDomains.stream()
+                .collect(Collectors.groupingBy(d -> d.getLevel().getId()));
+
         Map<Long, Double> levelProgressMap = new HashMap<>();
-        levelRepository.findAll().forEach(level -> {
-            List<com.eformation.api.model.Domain> domains = domainRepository.findByLevelId(level.getId());
+        levels.forEach(level -> {
+            List<com.eformation.api.model.Domain> domains = domainsByLevel.getOrDefault(level.getId(), java.util.Collections.emptyList());
             double levelProgress = domains.stream().mapToDouble(d -> {
-                long total = phraseRepository.countByDomainId(d.getId());
-                long completed = phraseProgressRepository.countCompletedPhrasesByDomain(user.getId(), d.getId());
+                long total = totalPhrasesByDomain.getOrDefault(d.getId(), 0L);
+                long completed = completedPhrasesByDomain.getOrDefault(d.getId(), 0L);
                 return total > 0 ? (double) completed / total * 100 : 0;
             }).average().orElse(0);
             levelProgressMap.put(level.getId(), levelProgress);
@@ -117,9 +141,23 @@ public class StudentController {
 
         return levelRepository.findById(levelId).map(level -> {
             List<com.eformation.api.model.Domain> domains = domainRepository.findByLevelId(levelId);
+
+            // Fetch counts in bulk for this specific level to avoid N+1 queries
+            List<Object[]> totalPhrasesRaw = phraseRepository.countPhrasesGroupByDomainIdForLevel(levelId);
+            Map<Long, Long> totalPhrasesByDomain = new HashMap<>();
+            for (Object[] row : totalPhrasesRaw) {
+                totalPhrasesByDomain.put((Long) row[0], (Long) row[1]);
+            }
+
+            List<Object[]> completedPhrasesRaw = phraseProgressRepository.countCompletedPhrasesGroupByDomainIdForLevel(levelId, user.getId());
+            Map<Long, Long> completedPhrasesByDomain = new HashMap<>();
+            for (Object[] row : completedPhrasesRaw) {
+                completedPhrasesByDomain.put((Long) row[0], (Long) row[1]);
+            }
+
             List<com.eformation.api.dto.LevelDetailsResponse.DomainProgressDTO> domainDTOs = domains.stream().map(d -> {
-                long totalPhrases = phraseRepository.countByDomainId(d.getId());
-                long completedPhrases = phraseProgressRepository.countCompletedPhrasesByDomain(user.getId(), d.getId());
+                long totalPhrases = totalPhrasesByDomain.getOrDefault(d.getId(), 0L);
+                long completedPhrases = completedPhrasesByDomain.getOrDefault(d.getId(), 0L);
                 return com.eformation.api.dto.LevelDetailsResponse.DomainProgressDTO.builder()
                         .id(d.getId())
                         .name(d.getName())
@@ -167,9 +205,9 @@ public class StudentController {
         return domainRepository.findById(domainId).map(domain -> {
             List<com.eformation.api.model.Phrase> phrases = phraseRepository.findByDomainIdOrderByOrderIndexAsc(domainId);
             
-            // Find the index of the last completed phrase
+            // Find the index of the last completed phrase, fetching progress ONLY for this domain
             int lastIndex = 0;
-            List<com.eformation.api.model.PhraseProgress> progressList = phraseProgressRepository.findByUserId(user.getId());
+            List<com.eformation.api.model.PhraseProgress> progressList = phraseProgressRepository.findByUserIdAndPhraseDomainId(user.getId(), domainId);
             
             for (int i = 0; i < phrases.size(); i++) {
                 final Long currentId = phrases.get(i).getId();
@@ -183,6 +221,7 @@ public class StudentController {
             response.put("name", domain.getName());
             response.put("levelName", domain.getLevel().getName());
             response.put("levelColor", domain.getLevel().getColor());
+            response.put("levelId", domain.getLevel().getId());
             response.put("lastIndex", lastIndex);
             
             return ResponseEntity.ok(response);

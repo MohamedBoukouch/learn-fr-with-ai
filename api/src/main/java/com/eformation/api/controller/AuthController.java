@@ -82,14 +82,4 @@ public class AuthController {
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully! Please wait for admin approval."));
     }
-
-    @PostMapping("/test-promote")
-    public ResponseEntity<?> promoteUser(@RequestParam String email) {
-        return userRepository.findByEmail(email).map(user -> {
-            user.setRole(Role.ADMIN);
-            user.setApproved(true);
-            userRepository.save(user);
-            return ResponseEntity.ok(new MessageResponse("User promoted!"));
-        }).orElse(ResponseEntity.notFound().build());
-    }
 }

@@ -6,8 +6,10 @@ import { LogIn } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const Login = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const isRtl = i18n.language === 'ar';
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,6 +21,7 @@ const Login = () => {
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('isApproved', response.data.approved);
       localStorage.setItem('userRole', response.data.roles[0]);
+      localStorage.setItem('userName', response.data.name);
       
       if (response.data.approved || response.data.roles.includes('ROLE_ADMIN')) {
         navigate('/dashboard');
@@ -31,7 +34,7 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-900 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-900 p-4" dir={isRtl ? 'rtl' : 'ltr'}>
       <motion.div 
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -81,7 +84,7 @@ const Login = () => {
         </form>
 
         <p className="mt-8 text-center text-sm text-gray-600">
-          Nouveau sur la plateforme ?{' '}
+          {t('new_to_platform')}{' '}
           <Link to="/signup" className="text-blue-600 font-bold hover:underline">
             {t('signup')}
           </Link>

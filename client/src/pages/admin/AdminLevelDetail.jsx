@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import api from '../../api';
+import api, { API_BASE_URL } from '../../api';
 import Layout from '../../components/Layout';
 import { Plus, Sparkles, ChevronLeft, Trash2, Edit2, Loader2, BookOpen, X, Image as ImageIcon, Upload, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -118,7 +118,7 @@ const AdminLevelDetail = () => {
   const handleEditDomain = (domain) => {
     setEditingDomain(domain);
     setManualForm({ name: domain.name, imageUrl: domain.imageUrl || '' });
-    setPreviewUrl(domain.imageUrl ? `http://localhost:8080${domain.imageUrl}` : null);
+    setPreviewUrl(domain.imageUrl ? `${API_BASE_URL}${domain.imageUrl}` : null);
     setIsManualModalOpen(true);
   };
 
@@ -212,7 +212,7 @@ const AdminLevelDetail = () => {
             >
               <div className="h-40 bg-gray-50 relative overflow-hidden">
                 {domain.imageUrl ? (
-                  <img src={`http://localhost:8080${domain.imageUrl}`} alt={domain.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <img src={`${API_BASE_URL}${domain.imageUrl}`} alt={domain.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center opacity-30" style={{ backgroundColor: level.color + '15' }}>
                     <BookOpen size={48} style={{ color: level.color }} />

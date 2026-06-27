@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import Login from './pages/Login';
@@ -14,6 +15,10 @@ import AdminDomainDetail from './pages/admin/AdminDomainDetail';
 import AdminQuizzes from './pages/admin/AdminQuizzes';
 import AdminLevelQuizDetail from './pages/admin/AdminLevelQuizDetail';
 import LevelDetail from './pages/LevelDetail';
+import UnderConstruction from './pages/UnderConstruction';
+import EmmaChat from './pages/EmmaChat';
+import LearnPhrases from './pages/LearnPhrases';
+import PreA1Learning from './pages/PreA1Learning';
 
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = !!localStorage.getItem('token');
@@ -37,6 +42,12 @@ const AdminRoute = ({ children }) => {
 function App() {
   const { t, i18n } = useTranslation();
 
+  useEffect(() => {
+    const dir = i18n.language === 'ar' ? 'rtl' : 'ltr';
+    document.documentElement.dir = dir;
+    document.documentElement.lang = i18n.language;
+  }, [i18n.language]);
+
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
   };
@@ -45,7 +56,7 @@ function App() {
     <Router>
       <div className="min-h-screen bg-gray-50">
         {/* Language Switcher */}
-        <div className="fixed top-4 right-4 z-50 flex gap-2">
+        <div className="fixed top-4 ltr:right-4 rtl:left-4 z-50 flex gap-2">
           {['fr', 'ar', 'en'].map((lng) => (
             <button
               key={lng}
@@ -63,10 +74,16 @@ function App() {
           <Route path="/pending" element={<PendingApproval />} />
           
           {/* Learner Routes */}
-          <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+<Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+           <Route path="/dashboard/learn" element={<ProtectedRoute><LearnPhrases /></ProtectedRoute>} />
+           <Route path="/dashboard/pre-a1" element={<ProtectedRoute><PreA1Learning /></ProtectedRoute>} />
+           <Route path="/dashboard/chat" element={<ProtectedRoute><EmmaChat /></ProtectedRoute>} />
           <Route path="/dashboard/levels/:levelId" element={<ProtectedRoute><LevelDetail /></ProtectedRoute>} />
           <Route path="/dashboard/domains/:domainId" element={<ProtectedRoute><DomainStudy /></ProtectedRoute>} />
           <Route path="/dashboard/domains/:domainId/quiz" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
+          <Route path="/dashboard/quizzes/:quizId" element={<ProtectedRoute><Quiz /></ProtectedRoute>} />
+          <Route path="/dashboard/certificates" element={<ProtectedRoute><UnderConstruction /></ProtectedRoute>} />
+          <Route path="/dashboard/profile" element={<ProtectedRoute><UnderConstruction /></ProtectedRoute>} />
           
           {/* Admin Routes */}
           <Route path="/admin/dashboard" element={<AdminRoute><AdminOverview /></AdminRoute>} />
@@ -76,10 +93,12 @@ function App() {
           <Route path="/admin/content/domains/:domainId" element={<AdminRoute><AdminDomainDetail /></AdminRoute>} />
           <Route path="/admin/quizzes" element={<AdminRoute><AdminQuizzes /></AdminRoute>} />
           <Route path="/admin/quizzes/levels/:levelId" element={<AdminRoute><AdminLevelQuizDetail /></AdminRoute>} />
+          <Route path="/admin/certificates" element={<AdminRoute><UnderConstruction /></AdminRoute>} />
           
           {/* Fallbacks */}
           <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="*" element={<UnderConstruction />} />
         </Routes>
       </div>
     </Router>

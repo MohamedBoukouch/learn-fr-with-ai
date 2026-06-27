@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const API_BASE_URL = 'http://localhost:8080';
+export const API_BASE_URL = `http://${window.location.hostname}:8080`;
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,
@@ -16,7 +16,8 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401 || error.response?.status === 403) {
+    const isChatRequest = error.config?.url?.includes('/student/chat');
+    if (error.response?.status === 401 || (error.response?.status === 403 && !isChatRequest)) {
       localStorage.clear();
       window.location.href = '/login';
     }

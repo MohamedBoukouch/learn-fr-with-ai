@@ -6,7 +6,9 @@ import lombok.*;
 import java.util.List;
 
 @Entity
-@Table(name = "domains")
+@Table(name = "domains", indexes = {
+    @Index(name = "idx_domains_level_id", columnList = "level_id")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -17,9 +19,15 @@ public class Domain {
     private Long id;
 
     @Column(nullable = false)
-    private String name; // e.g., Home, School, Hospital...
+    private String name;
 
     private String imageUrl;
+
+    @Column(nullable = true)
+    private String topicType;
+
+    @Column(nullable = true)
+    private String icon;
 
     @ManyToOne
     @JoinColumn(name = "level_id", nullable = false)
@@ -27,5 +35,6 @@ public class Domain {
     private Level level;
 
     @OneToMany(mappedBy = "domain", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<Phrase> phrases;
 }

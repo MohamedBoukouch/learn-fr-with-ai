@@ -38,12 +38,31 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean isApproved;
 
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    @Builder.Default
+    private boolean emmaAccess = true;
+
+    @Column(nullable = true)
+    private String groupName;
+
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+    }
+
+    public String getFirstName() {
+        if (name == null) return "";
+        String[] parts = name.trim().split("\\s+", 2);
+        return parts[0];
+    }
+
+    public String getLastName() {
+        if (name == null) return "";
+        String[] parts = name.trim().split("\\s+", 2);
+        return parts.length > 1 ? parts[1] : "";
     }
 
     @Override

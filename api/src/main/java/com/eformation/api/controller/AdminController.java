@@ -10,6 +10,8 @@ import com.eformation.api.repository.LevelRepository;
 import com.eformation.api.repository.DomainRepository;
 import com.eformation.api.repository.PhraseRepository;
 import com.eformation.api.repository.VocabularyRepository;
+import com.eformation.api.repository.SystemSettingRepository;
+import com.eformation.api.model.SystemSetting;
 import com.eformation.api.service.AiService;
 import com.eformation.api.service.FileStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,6 +55,9 @@ public class AdminController {
 
     @Autowired
     com.eformation.api.repository.QuizResultRepository quizResultRepository;
+
+    @Autowired
+    SystemSettingRepository systemSettingRepository;
 
     @PostMapping("/upload")
     public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
@@ -149,12 +154,18 @@ public class AdminController {
             com.eformation.api.model.Level level = levelRepository.findById(levelId)
                     .orElseThrow(() -> new RuntimeException("Level not found"));
             
+            int count = 5;
+            if (payload.containsKey("count") && payload.get("count") != null) {
+                count = Integer.parseInt(payload.get("count").toString());
+            }
+            String guide = (String) payload.get("guide");
+
             List<Phrase> phrases = phraseRepository.findByDomainLevelId(levelId);
             List<String> phraseTexts = phrases.stream()
                     .map(Phrase::getFrenchText)
                     .collect(java.util.stream.Collectors.toList());
             
-            String result = aiService.generateContent(aiService.getLevelQuizGenerationPrompt(level.getName(), phraseTexts));
+            String result = aiService.generateContent(aiService.getLevelQuizGenerationPrompt(level.getName(), count, phraseTexts, guide));
             if (result.startsWith("Error")) {
                 return ResponseEntity.internalServerError().body(new MessageResponse(result));
             }
@@ -346,5 +357,63 @@ public class AdminController {
             userRepository.delete(user);
             return ResponseEntity.ok(new MessageResponse("User deleted"));
         }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/settings")
+    public ResponseEntity<?> getSettings() {
+        List<SystemSetting> settings = systemSettingRepository.findAll();
+        Map<String, String> settingsMap = new HashMap<>();
+        for (SystemSetting s : settings) {
+            settingsMap.put(s.getKey(), s.getValue());
+        }
+        return ResponseEntity.ok(settingsMap);
+    }
+
+    @PostMapping("/settings")
+    public ResponseEntity<?> saveSetting(@RequestBody Map<String, String> payload) {
+        String key = payload.get("key");
+        String value = payload.get("value");
+        if (key == null || value == null) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Key and value are required"));
+        }
+        SystemSetting setting = SystemSetting.builder()
+                .key(key)
+                .value(value)
+                .build();
+        systemSettingRepository.save(setting);
+        return ResponseEntity.ok(new MessageResponse("Setting saved successfully"));
+    }
+
+    @DeleteMapping("/settings/{key}")
+    public ResponseEntity<?> deleteSetting(@PathVariable String key) {
+        if (systemSettingRepository.existsById(key)) {
+            systemSettingRepository.deleteById(key);
+            return ResponseEntity.ok(new MessageResponse("Setting deleted successfully"));
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/users/groups")
+    public ResponseEntity<List<String>> listDistinctGroups() {
+        return ResponseEntity.ok(userRepository.findDistinctGroupNames());
+    }
+
+    @PutMapping("/users/{id}/emma-access")
+    public ResponseEntity<?> toggleUserEmmaAccess(@PathVariable Long id) {
+        return userRepository.findById(id).map(user -> {
+            user.setEmmaAccess(!user.isEmmaAccess());
+            userRepository.save(user);
+            return ResponseEntity.ok(new MessageResponse("User Emma AI access updated to " + (user.isEmmaAccess() ? "Enabled" : "Disabled")));
+        }).orElse(ResponseEntity.status(404).body(new MessageResponse("User not found with ID: " + id)));
+    }
+
+    @PutMapping("/users/{id}/group")
+    public ResponseEntity<?> updateUserGroup(@PathVariable Long id, @RequestBody Map<String, String> payload) {
+        String groupName = payload.get("groupName");
+        return userRepository.findById(id).map(user -> {
+            user.setGroupName(groupName == null || groupName.trim().isEmpty() ? null : groupName.trim());
+            userRepository.save(user);
+            return ResponseEntity.ok(new MessageResponse("User group updated successfully"));
+        }).orElse(ResponseEntity.status(404).body(new MessageResponse("User not found with ID: " + id)));
     }
 }

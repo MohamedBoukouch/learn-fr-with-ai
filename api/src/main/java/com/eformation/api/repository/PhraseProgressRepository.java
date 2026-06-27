@@ -20,4 +20,13 @@ public interface PhraseProgressRepository extends JpaRepository<PhraseProgress, 
 
     @Query("SELECT COUNT(p) FROM PhraseProgress p JOIN p.phrase ph JOIN ph.domain d WHERE p.user.id = :userId AND d.level.id = :levelId")
     long countCompletedPhrasesByLevel(@Param("userId") Long userId, @Param("levelId") Long levelId);
+
+    @Query("SELECT ph.domain.id, COUNT(p) FROM PhraseProgress p JOIN p.phrase ph WHERE p.user.id = :userId GROUP BY ph.domain.id")
+    List<Object[]> countCompletedPhrasesGroupByDomainId(@Param("userId") Long userId);
+
+    @Query("SELECT ph.domain.id, COUNT(p) FROM PhraseProgress p JOIN p.phrase ph WHERE ph.domain.level.id = :levelId AND p.user.id = :userId GROUP BY ph.domain.id")
+    List<Object[]> countCompletedPhrasesGroupByDomainIdForLevel(@Param("levelId") Long levelId, @Param("userId") Long userId);
+
+    @Query("SELECT p FROM PhraseProgress p JOIN p.phrase ph WHERE p.user.id = :userId AND ph.domain.id = :domainId")
+    List<PhraseProgress> findByUserIdAndPhraseDomainId(@Param("userId") Long userId, @Param("domainId") Long domainId);
 }
