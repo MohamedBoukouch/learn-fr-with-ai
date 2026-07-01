@@ -1,29 +1,24 @@
-import React, { useState, useCallback } from 'react';
-import { Volume2, ChevronLeft, ChevronRight, Star, Heart, Zap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Volume2, VolumeX, ChevronLeft, ChevronRight, Star, Heart, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
+import { useSpeech } from '../hooks/useSpeech';
 
 const PreA1Flashcard = ({ phrases, onComplete }) => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.language === 'ar';
   const [currentIndex, setCurrentIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
+  const { speak, stop, isSpeaking } = useSpeech('fr-FR');
 
-  const speak = useCallback((text) => {
-    if (speaking) window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'fr-FR';
-    utterance.rate = 0.8;
-    
-    utterance.onstart = () => setSpeaking(true);
-    utterance.onend = () => setSpeaking(false);
-    
-    window.speechSynthesis.speak(utterance);
-  }, [speaking]);
+  const speechId = `pre-a1-${currentIndex}`;
+
+  useEffect(() => {
+    stop();
+  }, [currentIndex, stop]);
 
   const handleNext = () => {
+    stop();
     if (currentIndex < phrases.length - 1) {
       setCurrentIndex(currentIndex + 1);
       setFlipped(false);
@@ -33,6 +28,7 @@ const PreA1Flashcard = ({ phrases, onComplete }) => {
   };
 
   const handlePrevious = () => {
+    stop();
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
       setFlipped(false);
@@ -93,12 +89,21 @@ const PreA1Flashcard = ({ phrases, onComplete }) => {
               </div>
 
               <button
-              onClick={(e) => { e.stopPropagation(); speak(currentItem.french); }}
-              className="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-pink-500 text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform"
-              disabled={speaking}
+              onClick={(e) => { e.stopPropagation(); speak(currentItem.french, { id: speechId, rate: 0.8 }); }}
+              aria-label={isSpeaking(speechId) ? t('stop_audio') : t('speak')}
+              className={`w-14 h-14 sm:w-20 sm:h-20 rounded-full text-white flex items-center justify-center shadow-lg hover:scale-110 active:scale-95 transition-transform ${
+                isSpeaking(speechId) ? 'bg-red-500 ring-4 ring-red-200' : 'bg-pink-500'
+              }`}
             >
-              <Volume2 size={28} sm:size={36} className={speaking ? 'animate-pulse' : ''} />
+              {isSpeaking(speechId) ? (
+                <VolumeX size={28} sm:size={36} className="animate-pulse" />
+              ) : (
+                <Volume2 size={28} sm:size={36} />
+              )}
             </button>
+            <p className="text-xs font-bold text-pink-400 uppercase tracking-widest mt-3">
+              {isSpeaking(speechId) ? t('stop_audio') : t('speak')}
+            </p>
             </div>
 
             {/* Back - Translation */}

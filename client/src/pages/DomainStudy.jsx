@@ -1,15 +1,16 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../api';
 import Layout from '../components/Layout';
 import { 
-  Volume2, ChevronLeft, ChevronRight, 
+  Volume2, VolumeX, ChevronLeft, ChevronRight, 
   Info, Award, CheckCircle, RotateCcw, 
   Music, BookOpen, Layers
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { getLevelStyle } from '../utils/constants';
+import { useSpeech } from '../hooks/useSpeech';
 
 const DomainStudy = () => {
   const { domainId } = useParams();
@@ -22,7 +23,10 @@ const DomainStudy = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [showVocab, setShowVocab] = useState(false);
-  const [speaking, setSpeaking] = useState(false);
+  const { speak, stop, isSpeaking } = useSpeech('fr-FR');
+
+  const phraseSpeechId = `phrase-${currentIndex}`;
+  const slowSpeechId = `phrase-${currentIndex}-slow`;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -53,6 +57,10 @@ const DomainStudy = () => {
     fetchData();
   }, [domainId]);
 
+  useEffect(() => {
+    stop();
+  }, [currentIndex, domainId, stop]);
+
   const markAsComplete = async (phraseId) => {
     try {
       await api.post(`/student/phrases/${phraseId}/complete`);
@@ -61,20 +69,8 @@ const DomainStudy = () => {
     }
   };
 
-  const speak = useCallback((text, rate = 1) => {
-    if (speaking) window.speechSynthesis.cancel();
-    
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'fr-FR';
-    utterance.rate = rate;
-    
-    utterance.onstart = () => setSpeaking(true);
-    utterance.onend = () => setSpeaking(false);
-    
-    window.speechSynthesis.speak(utterance);
-  }, [speaking]);
-
   const handleNext = () => {
+    stop();
     if (currentIndex < phrases.length - 1) {
       const nextIndex = currentIndex + 1;
       setCurrentIndex(nextIndex);
@@ -86,6 +82,7 @@ const DomainStudy = () => {
   };
 
   const handlePrevious = () => {
+    stop();
     if (currentIndex > 0) {
       setCurrentIndex(currentIndex - 1);
       setShowVocab(false);
@@ -135,7 +132,7 @@ const DomainStudy = () => {
         {/* Top Navigation */}
         <div className="flex items-center justify-between">
           <button 
-            onClick={() => navigate(-1)}
+            onClick={() => { stop(); navigate(-1); }}
             className="flex items-center gap-2 text-gray-500 hover:text-gray-900 transition-colors font-bold group"
           >
             <ChevronLeft size={20} className="group-hover:ltr:-translate-x-1 group-hover:rtl:translate-x-1 rtl:rotate-180 transition-transform" />
@@ -183,21 +180,38 @@ const DomainStudy = () => {
                   {currentPhrase.frenchText}
                 </motion.h1>
 
-                <div className="flex items-center justify-center gap-4">
-                  <button 
-                    onClick={() => speak(currentPhrase.frenchText)}
-                    className="w-16 h-16 rounded-3xl flex items-center justify-center text-white shadow-xl hover:scale-110 active:scale-95 transition-all group"
-                    style={{ backgroundColor: themeColor }}
-                  >
-                    <Volume2 size={32} className={speaking ? 'animate-pulse' : ''} />
-                  </button>
-                  <button 
-                    onClick={() => speak(currentPhrase.frenchText, 0.6)}
-                    className="px-6 py-4 rounded-2xl bg-gray-50 text-gray-400 font-black text-sm hover:bg-gray-100 transition-colors flex items-center gap-2"
-                  >
-                    <Music size={16} />
-                    {t('slowly')}
-                  </button>
+                <div className="flex flex-col items-center gap-3">
+                  <div className="flex items-center justify-center gap-4">
+                    <button 
+                      onClick={() => speak(currentPhrase.frenchText, { id: phraseSpeechId, rate: 1 })}
+                      aria-label={isSpeaking(phraseSpeechId) ? t('stop_audio') : t('speak')}
+                      className={`w-16 h-16 rounded-3xl flex items-center justify-center text-white shadow-xl hover:scale-110 active:scale-95 transition-all ${
+                        isSpeaking(phraseSpeechId) ? 'ring-4 ring-white/50 scale-105' : ''
+                      }`}
+                      style={{ backgroundColor: isSpeaking(phraseSpeechId) ? '#ef4444' : themeColor }}
+                    >
+                      {isSpeaking(phraseSpeechId) ? (
+                        <VolumeX size={32} className="animate-pulse" />
+                      ) : (
+                        <Volume2 size={32} />
+                      )}
+                    </button>
+                    <button 
+                      onClick={() => speak(currentPhrase.frenchText, { id: slowSpeechId, rate: 0.6 })}
+                      aria-label={isSpeaking(slowSpeechId) ? t('stop_audio') : t('slowly')}
+                      className={`px-6 py-4 rounded-2xl font-black text-sm transition-colors flex items-center gap-2 ${
+                        isSpeaking(slowSpeechId)
+                          ? 'bg-red-50 text-red-600 ring-2 ring-red-200'
+                          : 'bg-gray-50 text-gray-400 hover:bg-gray-100'
+                      }`}
+                    >
+                      {isSpeaking(slowSpeechId) ? <VolumeX size={16} /> : <Music size={16} />}
+                      {isSpeaking(slowSpeechId) ? t('stop_audio') : t('slowly')}
+                    </button>
+                  </div>
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">
+                    {isSpeaking(phraseSpeechId) || isSpeaking(slowSpeechId) ? t('stop_audio') : t('speak')}
+                  </p>
                 </div>
               </div>
 
@@ -241,10 +255,15 @@ const DomainStudy = () => {
                   >
                     <div className="flex items-center gap-4">
                       <button 
-                        onClick={() => speak(v.frenchWord)}
-                        className="p-2 bg-blue-50 text-blue-600 rounded-xl group-hover:bg-blue-600 group-hover:text-white transition-all"
+                        onClick={() => speak(v.frenchWord, { id: `vocab-${currentIndex}-${i}` })}
+                        aria-label={isSpeaking(`vocab-${currentIndex}-${i}`) ? t('stop_audio') : t('speak')}
+                        className={`p-2 rounded-xl transition-all ${
+                          isSpeaking(`vocab-${currentIndex}-${i}`)
+                            ? 'bg-red-500 text-white'
+                            : 'bg-blue-50 text-blue-600 group-hover:bg-blue-600 group-hover:text-white'
+                        }`}
                       >
-                        <Volume2 size={16} />
+                        {isSpeaking(`vocab-${currentIndex}-${i}`) ? <VolumeX size={16} /> : <Volume2 size={16} />}
                       </button>
                       <span className="text-lg font-black text-gray-900">{v.frenchWord}</span>
                     </div>

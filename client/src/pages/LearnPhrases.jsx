@@ -15,22 +15,30 @@ const LearnPhrases = () => {
   const [levels, setLevels] = useState([]);
   const [selectedLevel, setSelectedLevel] = useState(null);
   const [domains, setDomains] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [userStats, setUserStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [domainsLoading, setDomainsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
-    const fetchLevels = async () => {
+    const fetchData = async () => {
       try {
-        const response = await api.get('/learning/levels');
-        setLevels(response.data);
+        const [levelsRes, statsRes, userStatsRes] = await Promise.all([
+          api.get('/learning/levels'),
+          api.get('/student/stats'),
+          api.get('/student/stats/detailed'),
+        ]);
+        setLevels(levelsRes.data);
+        setStats(statsRes.data);
+        setUserStats(userStatsRes.data);
       } catch (err) {
-        console.error('Failed to fetch levels', err);
+        console.error('Failed to fetch data', err);
       } finally {
         setLoading(false);
       }
     };
-    fetchLevels();
+    fetchData();
   }, []);
 
   const handleLevelSelect = async (level) => {
@@ -45,6 +53,10 @@ const LearnPhrases = () => {
     } finally {
       setDomainsLoading(false);
     }
+  };
+
+  const getDomainProgress = (domainId) => {
+    return userStats?.domainProgress?.[domainId.toString()] || 0;
   };
 
   if (loading) {
@@ -132,7 +144,28 @@ const LearnPhrases = () => {
                         </h3>
                         <p className="text-gray-600 font-medium mb-6">{t('level_card_desc')}</p>
 
-                        <div className="flex items-center gap-2 text-sm font-bold opacity-80 group-hover:opacity-100 transition-opacity" style={{ color: dbColor || style.primary }}>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
+                            <span>{t('progress')}</span>
+                            <span>
+                              {Math.round(stats?.levelProgress?.[level.id] || 0)}%
+                            </span>
+                          </div>
+                          <div className="h-3 bg-white/50 rounded-full overflow-hidden border border-white/20">
+                            <motion.div
+                              initial={{ width: 0 }}
+                              animate={{
+                                width: `${stats?.levelProgress?.[level.id] || 0}%`,
+                              }}
+                              className="h-full"
+                              style={{
+                                backgroundColor: dbColor || style.primary,
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 text-sm font-bold opacity-80 group-hover:opacity-100 transition-opacity mt-4" style={{ color: dbColor || style.primary }}>
                           <Layers size={16} />
                           {t('tab_learn')}
                         </div>
@@ -205,7 +238,24 @@ const LearnPhrases = () => {
                                   <h3 className="text-white text-xl font-bold">{domain.name}</h3>
                                 </div>
                               </div>
-                              <div className="p-6">
+                              <div className="p-6 space-y-4">
+                                <div className="space-y-2">
+                                  <div className="flex justify-between text-xs font-bold text-gray-400 uppercase tracking-widest">
+                                    <span>{t('progress')}</span>
+                                    <span>
+                                      {Math.round(getDomainProgress(domain.id))}%
+                                    </span>
+                                  </div>
+                                  <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                    <motion.div
+                                      initial={{ width: 0 }}
+                                      animate={{
+                                        width: `${getDomainProgress(domain.id)}%`,
+                                      }}
+                                      className="h-full bg-blue-600 rounded-full transition-all"
+                                    />
+                                  </div>
+                                </div>
                                 <button className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-blue-700 transition-colors">
                                   {t('learn')}
                                 </button>

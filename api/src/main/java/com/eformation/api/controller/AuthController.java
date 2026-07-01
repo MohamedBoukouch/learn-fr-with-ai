@@ -3,7 +3,9 @@ package com.eformation.api.controller;
 import com.eformation.api.dto.*;
 import com.eformation.api.model.Role;
 import com.eformation.api.model.User;
+import com.eformation.api.model.Settings;
 import com.eformation.api.repository.UserRepository;
+import com.eformation.api.repository.SettingsRepository;
 import com.eformation.api.security.JwtUtils;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +35,9 @@ public class AuthController {
 
     @Autowired
     JwtUtils jwtUtils;
+
+    @Autowired
+    SettingsRepository settingsRepository;
 
     @PostMapping("/signin")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -69,17 +74,26 @@ public class AuthController {
                     .body(new MessageResponse("Error: Email is already in use!"));
         }
 
+        // Get default approval status from settings
+        boolean defaultApproved = settingsRepository.findByKey("default_user_approval")
+            .map(setting -> "approved".equals(setting.getValue()))
+            .orElse(false);
+
         // Create new user's account
         User user = User.builder()
                 .name(signUpRequest.getName())
                 .email(signUpRequest.getEmail())
                 .passwordHash(encoder.encode(signUpRequest.getPassword()))
                 .role(Role.LEARNER) // Default role
-                .isApproved(false)  // Needs admin approval
+                .isApproved(defaultApproved)  // Use setting or default to pending
                 .build();
 
         userRepository.save(user);
 
-        return ResponseEntity.ok(new MessageResponse("User registered successfully! Please wait for admin approval."));
+        String message = defaultApproved
+            ? "User registered successfully! You can now log in."
+            : "User registered successfully! Please wait for admin approval.";
+
+        return ResponseEntity.ok(new MessageResponse(message));
     }
 }

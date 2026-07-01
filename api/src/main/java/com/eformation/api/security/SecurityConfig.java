@@ -83,6 +83,7 @@ public class SecurityConfig {
                     .requestMatchers("/api/auth/**").permitAll()
                     .requestMatchers("/api/test/**").permitAll()
                     .requestMatchers("/uploads/**").permitAll()
+                    .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/admin/settings/general").permitAll()
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .requestMatchers("/h2-console/**").permitAll()
                     .requestMatchers("/error").permitAll()

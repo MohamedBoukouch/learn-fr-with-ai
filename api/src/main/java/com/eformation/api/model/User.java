@@ -6,6 +6,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -38,9 +39,19 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private boolean isApproved;
 
-    @Column(nullable = false, columnDefinition = "boolean default true")
+    @Column(nullable = false, columnDefinition = "boolean default false")
     @Builder.Default
-    private boolean emmaAccess = true;
+    private boolean emmaAccess = false;
+
+    @Column(nullable = true)
+    private LocalDate emmaAccessStartDate;
+
+    @Column(nullable = true)
+    private LocalDate emmaAccessEndDate;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private boolean emmaAccessRevoked = false;
 
     @Column(nullable = true)
     private String groupName;

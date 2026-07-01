@@ -2,13 +2,12 @@ package com.eformation.api.controller;
 
 import com.eformation.api.dto.ChatRequest;
 import com.eformation.api.service.AiService;
+import com.eformation.api.service.EmmaAccessService;
 import com.eformation.api.model.User;
-import com.eformation.api.model.Role;
-import com.eformation.api.model.SystemSetting;
-import com.eformation.api.repository.SystemSettingRepository;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,35 +23,26 @@ public class ChatController {
     private AiService aiService;
 
     @Autowired
-    private SystemSettingRepository systemSettingRepository;
+    private EmmaAccessService emmaAccessService;
 
     private boolean hasEmmaAccess(User user) {
-        if (user.getRole() == Role.ADMIN) {
-            return true;
-        }
-        java.util.Optional<SystemSetting> globalAccess = systemSettingRepository.findById("emma_global_access");
-        if (globalAccess.isPresent() && "false".equalsIgnoreCase(globalAccess.get().getValue())) {
-            return false;
-        }
-        if (!user.isEmmaAccess()) {
-            return false;
-        }
-        if (user.getGroupName() != null && !user.getGroupName().trim().isEmpty()) {
-            java.util.Optional<SystemSetting> groupAccess = systemSettingRepository.findById("emma_group_disabled_" + user.getGroupName().trim());
-            if (groupAccess.isPresent() && "true".equalsIgnoreCase(groupAccess.get().getValue())) {
-                return false;
-            }
-        }
-        return true;
+        return emmaAccessService.canAccessEmma(user);
+    }
+
+    private ResponseEntity<?> accessDeniedResponse() {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of(
+                        "error", "Access denied",
+                        "message", "EMMA AI Professor is a premium feature. To activate access, please contact support via WhatsApp."
+                ));
     }
 
     @PostMapping
-    public ResponseEntity<String> chatWithEmma(@RequestBody ChatRequest chatRequest) {
+    public ResponseEntity<?> chatWithEmma(@RequestBody ChatRequest chatRequest) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
         if (!hasEmmaAccess(user)) {
-            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
-                    .body("{\"error\": \"L'accès à Emma AI a été désactivé par l'administrateur.\"}");
+            return accessDeniedResponse();
         }
         // Build conversation history representation for the prompt
         String historyText = "";
@@ -117,12 +107,11 @@ public class ChatController {
     }
 
     @PostMapping("/transcribe")
-    public ResponseEntity<Map<String, String>> transcribeAudio(@RequestBody Map<String, String> payload) {
+    public ResponseEntity<?> transcribeAudio(@RequestBody Map<String, String> payload) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         User user = (User) authentication.getPrincipal();
         if (!hasEmmaAccess(user)) {
-            return ResponseEntity.status(org.springframework.http.HttpStatus.FORBIDDEN)
-                    .body(Map.of("error", "L'accès à Emma AI a été désactivé par l'administrateur."));
+            return accessDeniedResponse();
         }
         String base64Audio = payload.get("audioData");
         String mimeType = payload.get("mimeType");

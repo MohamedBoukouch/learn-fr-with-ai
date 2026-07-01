@@ -5,13 +5,17 @@ import com.eformation.api.model.User;
 import com.eformation.api.model.Phrase;
 import com.eformation.api.model.Vocabulary;
 import com.eformation.api.model.Domain;
+import com.eformation.api.model.Level;
 import com.eformation.api.repository.UserRepository;
 import com.eformation.api.repository.LevelRepository;
 import com.eformation.api.repository.DomainRepository;
 import com.eformation.api.repository.PhraseRepository;
 import com.eformation.api.repository.VocabularyRepository;
 import com.eformation.api.repository.SystemSettingRepository;
+import com.eformation.api.repository.PhraseProgressRepository;
+import com.eformation.api.repository.SettingsRepository;
 import com.eformation.api.model.SystemSetting;
+import com.eformation.api.model.Settings;
 import com.eformation.api.service.AiService;
 import com.eformation.api.service.FileStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,9 +24,12 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import org.springframework.data.domain.PageRequest;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
@@ -58,6 +65,12 @@ public class AdminController {
 
     @Autowired
     SystemSettingRepository systemSettingRepository;
+
+    @Autowired
+    PhraseProgressRepository phraseProgressRepository;
+
+    @Autowired
+    SettingsRepository settingsRepository;
 
     @PostMapping("/upload")
     public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile file) {
@@ -107,9 +120,48 @@ public class AdminController {
     public ResponseEntity<?> getStats() {
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalUsers", userRepository.count());
+        stats.put("pendingUsers", userRepository.countByApproved(false));
+        stats.put("approvedUsers", userRepository.countByApproved(true));
+        stats.put("totalLevels", levelRepository.count());
         stats.put("totalDomains", domainRepository.count());
         stats.put("totalPhrases", phraseRepository.count());
+        stats.put("totalQuizzes", quizRepository.count());
+        stats.put("totalQuizResults", quizResultRepository.count());
+        stats.put("totalVocabulary", vocabularyRepository.count());
+        stats.put("totalPhraseProgress", phraseProgressRepository.count());
+        stats.put("emmaAccessUsers", userRepository.countByEmmaAccess(true));
+        
+        LocalDateTime sevenDaysAgo = LocalDateTime.now().minusDays(7);
+        stats.put("quizResultsLast7Days", quizResultRepository.countSince(sevenDaysAgo));
+        stats.put("phrasesLearnedLast7Days", phraseProgressRepository.countSince(sevenDaysAgo));
+        stats.put("activeUsersLast7Days", phraseProgressRepository.countActiveUsersSince(sevenDaysAgo));
+        
+        LocalDateTime thirtyDaysAgo = LocalDateTime.now().minusDays(30);
+        stats.put("quizResultsLast30Days", quizResultRepository.countSince(thirtyDaysAgo));
+        stats.put("phrasesLearnedLast30Days", phraseProgressRepository.countSince(thirtyDaysAgo));
+        stats.put("activeUsersLast30Days", phraseProgressRepository.countActiveUsersSince(thirtyDaysAgo));
+        
         return ResponseEntity.ok(stats);
+    }
+
+    @GetMapping("/stats/quiz-averages")
+    public ResponseEntity<?> getQuizAverages() {
+        Map<String, Object> result = new HashMap<>();
+        Double averageScore = quizResultRepository.findAverageScore();
+        result.put("averageScore", averageScore != null ? averageScore : 0.0);
+        Long passedCount = quizResultRepository.countPassed();
+        result.put("passedQuizzes", passedCount != null ? passedCount : 0L);
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/stats/level-distribution")
+    public ResponseEntity<?> getLevelDistribution() {
+        return ResponseEntity.ok(phraseProgressRepository.getCompletionStatsByLevel());
+    }
+
+    @GetMapping("/stats/recent-activity")
+    public ResponseEntity<?> getRecentActivity() {
+        return ResponseEntity.ok(quizResultRepository.findRecentResults(PageRequest.of(0, 10)));
     }
 
     @PostMapping("/ai/generate-domains")
@@ -177,6 +229,16 @@ public class AdminController {
     }
 
     // --- Levels ---
+    @PutMapping("/levels/{id}")
+    public ResponseEntity<?> updateLevel(@PathVariable Long id, @RequestBody Level level) {
+        return levelRepository.findById(id).map(existingLevel -> {
+            existingLevel.setName(level.getName());
+            existingLevel.setColor(level.getColor());
+            existingLevel.setOrderIndex(level.getOrderIndex());
+            return ResponseEntity.ok(levelRepository.save(existingLevel));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     @DeleteMapping("/levels/{id}")
     public ResponseEntity<?> deleteLevel(@PathVariable Long id) {
         return levelRepository.findById(id).map(level -> {
@@ -402,8 +464,34 @@ public class AdminController {
     public ResponseEntity<?> toggleUserEmmaAccess(@PathVariable Long id) {
         return userRepository.findById(id).map(user -> {
             user.setEmmaAccess(!user.isEmmaAccess());
+            user.setEmmaAccessRevoked(false);
+            if (!user.isEmmaAccess()) {
+                user.setEmmaAccessStartDate(null);
+                user.setEmmaAccessEndDate(null);
+            }
             userRepository.save(user);
             return ResponseEntity.ok(new MessageResponse("User Emma AI access updated to " + (user.isEmmaAccess() ? "Enabled" : "Disabled")));
+        }).orElse(ResponseEntity.status(404).body(new MessageResponse("User not found with ID: " + id)));
+    }
+
+    @PutMapping("/users/{id}/emma-access/plan")
+    public ResponseEntity<?> updateUserEmmaAccessPlan(@PathVariable Long id, @RequestBody Map<String, Object> payload) {
+        return userRepository.findById(id).map(user -> {
+            Boolean enabled = (Boolean) payload.get("enabled");
+            if (enabled != null) {
+                user.setEmmaAccess(enabled);
+            }
+            if (payload.containsKey("startDate") && payload.get("startDate") != null) {
+                user.setEmmaAccessStartDate(LocalDate.parse(payload.get("startDate").toString()));
+            }
+            if (payload.containsKey("endDate") && payload.get("endDate") != null) {
+                user.setEmmaAccessEndDate(LocalDate.parse(payload.get("endDate").toString()));
+            }
+            if (payload.containsKey("revoked")) {
+                user.setEmmaAccessRevoked(Boolean.parseBoolean(payload.get("revoked").toString()));
+            }
+            userRepository.save(user);
+            return ResponseEntity.ok(new MessageResponse("Emma access plan updated successfully"));
         }).orElse(ResponseEntity.status(404).body(new MessageResponse("User not found with ID: " + id)));
     }
 
@@ -411,9 +499,91 @@ public class AdminController {
     public ResponseEntity<?> updateUserGroup(@PathVariable Long id, @RequestBody Map<String, String> payload) {
         String groupName = payload.get("groupName");
         return userRepository.findById(id).map(user -> {
-            user.setGroupName(groupName == null || groupName.trim().isEmpty() ? null : groupName.trim());
+            user.setGroupName(groupName);
             userRepository.save(user);
             return ResponseEntity.ok(new MessageResponse("User group updated successfully"));
         }).orElse(ResponseEntity.status(404).body(new MessageResponse("User not found with ID: " + id)));
+    }
+
+    // --- Default User Approval Status Settings ---
+
+    @GetMapping("/settings/default-user-approval")
+    public ResponseEntity<?> getDefaultUserApprovalStatus() {
+        String key = "default_user_approval";
+        return settingsRepository.findByKey(key)
+            .map(setting -> ResponseEntity.ok(Map.of(
+                "key", setting.getKey(),
+                "value", setting.getValue(),
+                "description", setting.getDescription()
+            )))
+            .orElse(ResponseEntity.ok(Map.of(
+                "key", key,
+                "value", "pending",
+                "description", "Default approval status for new registered users"
+            )));
+    }
+
+    @PutMapping("/settings/default-user-approval")
+    public ResponseEntity<?> updateDefaultUserApprovalStatus(@RequestBody Map<String, String> payload) {
+        String value = payload.get("value");
+        if (!"approved".equals(value) && !"pending".equals(value)) {
+            return ResponseEntity.badRequest().body(new MessageResponse("Value must be either 'approved' or 'pending'"));
+        }
+
+        String key = "default_user_approval";
+        return settingsRepository.findByKey(key)
+            .map(setting -> {
+                setting.setValue(value);
+                settingsRepository.save(setting);
+                return ResponseEntity.ok(new MessageResponse("Default user approval status updated to " + value));
+            })
+            .orElseGet(() -> {
+                Settings newSetting = Settings.builder()
+                    .key(key)
+                    .value(value)
+                    .description("Default approval status for new registered users")
+                    .build();
+                settingsRepository.save(newSetting);
+                return ResponseEntity.ok(new MessageResponse("Default user approval status set to " + value));
+            });
+    }
+
+    // --- General Settings ---
+    @GetMapping("/settings/general")
+    public ResponseEntity<?> getGeneralSettings() {
+        Map<String, String> settings = new HashMap<>();
+        settings.put("whatsapp_number", settingsRepository.findByKey("whatsapp_number").map(Settings::getValue).orElse(""));
+        settings.put("instagram_url", settingsRepository.findByKey("instagram_url").map(Settings::getValue).orElse(""));
+        settings.put("linkedin_url", settingsRepository.findByKey("linkedin_url").map(Settings::getValue).orElse(""));
+        settings.put("facebook_url", settingsRepository.findByKey("facebook_url").map(Settings::getValue).orElse(""));
+        return ResponseEntity.ok(settings);
+    }
+
+    @PutMapping("/settings/general")
+    public ResponseEntity<?> updateGeneralSettings(@RequestBody Map<String, String> payload) {
+        try {
+            String[] settingKeys = {"whatsapp_number", "instagram_url", "linkedin_url", "facebook_url"};
+            for (String key : settingKeys) {
+                String value = payload.get(key);
+                if (value != null) {
+                    settingsRepository.findByKey(key)
+                        .map(setting -> {
+                            setting.setValue(value);
+                            return settingsRepository.save(setting);
+                        })
+                        .orElseGet(() -> {
+                            Settings newSetting = Settings.builder()
+                                .key(key)
+                                .value(value)
+                                .description("General setting: " + key)
+                                .build();
+                            return settingsRepository.save(newSetting);
+                        });
+                }
+            }
+            return ResponseEntity.ok(new MessageResponse("General settings updated successfully"));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(new MessageResponse("Failed to update general settings: " + e.getMessage()));
+        }
     }
 }

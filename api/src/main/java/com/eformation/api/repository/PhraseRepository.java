@@ -16,4 +16,7 @@ public interface PhraseRepository extends JpaRepository<Phrase, Long> {
 
     @Query("SELECT p.domain.id, COUNT(p) FROM Phrase p WHERE p.domain.level.id = :levelId GROUP BY p.domain.id")
     List<Object[]> countPhrasesGroupByDomainIdForLevel(@Param("levelId") Long levelId);
+
+    @Query("SELECT COUNT(p) FROM Phrase p JOIN p.domain d JOIN d.level l WHERE l.name = :levelName")
+    Long countByLevelName(@Param("levelName") String levelName);
 }

@@ -1,18 +1,44 @@
 import React, { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import api from '../../api';
 import Layout from '../../components/Layout';
-import { User as UserIcon, CheckCircle, XCircle, Trash2, Search, Loader2, Shield, UserCheck, UserMinus } from 'lucide-react';
+import { User as UserIcon, CheckCircle, XCircle, Trash2, Search, Loader2, Shield, UserCheck, UserMinus, Settings, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const AdminUsers = () => {
+  const { t } = useTranslation();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [processingId, setProcessingId] = useState(null);
+  const [defaultApproval, setDefaultApproval] = useState('pending');
+  const [updatingSetting, setUpdatingSetting] = useState(false);
 
   useEffect(() => {
     fetchUsers();
+    fetchDefaultApproval();
   }, []);
+
+  const fetchDefaultApproval = async () => {
+    try {
+      const res = await api.get('/admin/settings/default-user-approval');
+      setDefaultApproval(res.data.value);
+    } catch (err) {
+      console.error('Failed to fetch default approval setting', err);
+    }
+  };
+
+  const handleUpdateDefaultApproval = async (value) => {
+    setUpdatingSetting(true);
+    try {
+      await api.put('/admin/settings/default-user-approval', { value });
+      setDefaultApproval(value);
+    } catch (err) {
+      alert(t('admin_default_approval_error'));
+    } finally {
+      setUpdatingSetting(false);
+    }
+  };
 
   const fetchUsers = async () => {
     try {
@@ -78,6 +104,58 @@ const AdminUsers = () => {
             />
           </div>
         </header>
+
+        {/* Default Approval Status Setting */}
+        <motion.div
+          initial={{ opacity: 1, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-[2rem] border border-indigo-100 p-6"
+        >
+          <div className="flex items-start gap-4">
+            <div className="p-3 bg-indigo-100 rounded-2xl">
+              <Settings className="text-indigo-600" size={24} />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                <h3 className="text-lg font-bold text-gray-900">{t('admin_default_approval_title')}</h3>
+                <AlertCircle className="text-indigo-500" size={18} />
+              </div>
+              <p className="text-sm text-gray-600 mb-4">
+                {t('admin_default_approval_desc')}
+              </p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => handleUpdateDefaultApproval('pending')}
+                  disabled={updatingSetting}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all ${
+                    defaultApproval === 'pending'
+                      ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20'
+                      : 'bg-white text-gray-600 hover:bg-amber-50 border border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <XCircle size={18} />
+                    <span>{t('admin_pending_approval')}</span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => handleUpdateDefaultApproval('approved')}
+                  disabled={updatingSetting}
+                  className={`flex-1 py-3 px-4 rounded-xl font-bold transition-all ${
+                    defaultApproval === 'approved'
+                      ? 'bg-green-500 text-white shadow-lg shadow-green-500/20'
+                      : 'bg-white text-gray-600 hover:bg-green-50 border border-gray-200'
+                  }`}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    <CheckCircle size={18} />
+                    <span>{t('admin_auto_approved')}</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
         <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">

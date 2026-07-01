@@ -1,20 +1,31 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../api';
 import Layout from '../../components/Layout';
-import { Search, ChevronRight, HelpCircle } from 'lucide-react';
+import { Search, ChevronRight, HelpCircle, BarChart3 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { getLevelStyle } from '../../utils/constants';
 
 const AdminQuizzes = () => {
   const [levels, setLevels] = useState([]);
+  const [quizStats, setQuizStats] = useState({});
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchLevels();
+    fetchQuizStats();
   }, []);
+
+  const fetchQuizStats = async () => {
+    try {
+      const response = await api.get('/admin/stats/quiz-averages');
+      setQuizStats(response.data);
+    } catch (err) {
+      console.error('Failed to fetch quiz stats', err);
+    }
+  };
 
   const fetchLevels = async () => {
     try {
@@ -91,6 +102,14 @@ const AdminQuizzes = () => {
                     >
                       {level.name}
                     </h3>
+                    
+                    <div className="mt-4 mb-2 text-xs text-gray-500 space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <BarChart3 size={14} /> 
+                        <span>{quizStats.passedQuizzes || 0} quiz results</span>
+                      </div>
+                      <div className="text-gray-400">Avg score: {Math.round(quizStats.averageScore || 0)}%</div>
+                    </div>
                     
                     <div className="mt-8 flex items-center justify-between">
                       <span className="text-sm font-bold text-gray-900 flex items-center gap-2">
