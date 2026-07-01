@@ -2,9 +2,15 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageCircle, Sparkles, Shield } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useLandingTheme } from './useLandingTheme';
 
 const TrustSection = ({ whatsappNumber, onWhatsAppContact }) => {
   const { t } = useTranslation();
+  const { isLight } = useLandingTheme();
+  const outerClasses = isLight ? 'bg-white border-slate-200 shadow-sm' : 'bg-white/3 border-white/8';
+  const headingText = isLight ? 'text-slate-900' : 'text-white';
+  const bodyText = isLight ? 'text-slate-600' : 'text-gray-400';
+  const cardClasses = isLight ? 'bg-slate-50 border-slate-200' : 'bg-white/5 border-white/8';
 
   return (
     <motion.div
@@ -15,10 +21,10 @@ const TrustSection = ({ whatsappNumber, onWhatsAppContact }) => {
     >
       <div className="relative rounded-2xl overflow-hidden">
         {/* Border gradient */}
-        <div className="absolute inset-0 bg-gradient-to-r from-violet-500/20 via-purple-500/20 to-indigo-500/20" />
+        <div className="absolute inset-0 bg-linear-to-r from-violet-500/20 via-purple-500/20 to-indigo-500/20" />
         
         {/* Content */}
-        <div className="relative m-px rounded-2xl bg-white/[0.03] backdrop-blur-sm p-6 sm:p-8 lg:p-10">
+        <div className={`relative m-px rounded-2xl backdrop-blur-sm p-6 sm:p-8 lg:p-10 ${outerClasses}`}>
           <div className="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
             {/* Left Content */}
             <div className="max-w-xl">
@@ -27,30 +33,30 @@ const TrustSection = ({ whatsappNumber, onWhatsAppContact }) => {
                 <span className="text-sm text-violet-400">{t('landing_trust_badge')}</span>
               </div>
               
-              <h3 className="text-2xl sm:text-3xl font-bold text-white mb-3">
+              <h3 className={`text-2xl sm:text-3xl font-bold mb-3 ${headingText}`}>
                 {t('landing_trust_title')}
               </h3>
               
-              <p className="text-sm sm:text-base text-gray-400 leading-relaxed">
+              <p className={`text-sm sm:text-base leading-relaxed ${bodyText}`}>
                 {t('landing_trust_subtitle')}
               </p>
             </div>
 
             {/* Right Card */}
-            <div className="flex-shrink-0">
-              <div className="rounded-xl bg-white/[0.05] border border-white/[0.08] p-5 sm:p-6">
-                <div className="flex items-center gap-2 text-sm text-gray-400 mb-3">
+            <div className="shrink-0">
+              <div className={`rounded-xl border p-5 sm:p-6 ${cardClasses}`}>
+                <div className={`flex items-center gap-2 text-sm mb-3 ${bodyText}`}>
                   <MessageCircle className="w-4 h-4 text-violet-400" />
                   <span>{t('landing_trust_whatsapp_label')}</span>
                 </div>
                 
-                <div className="text-xl font-bold text-white mb-4">
+                <div className={`text-xl font-bold mb-4 ${headingText}`}>
                   {whatsappNumber || t('landing_trust_number_placeholder')}
                 </div>
                 
                 <button
                   onClick={onWhatsAppContact}
-                  className="group inline-flex items-center gap-2 w-full justify-center px-5 py-3 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl font-semibold text-sm hover:from-violet-500 hover:to-purple-500 transition-all shadow-lg shadow-violet-500/25"
+                  className="group inline-flex items-center gap-2 w-full justify-center px-5 py-3 bg-linear-to-r from-violet-600 to-purple-600 text-white rounded-xl font-semibold text-sm hover:from-violet-500 hover:to-purple-500 transition-all shadow-lg shadow-violet-500/25"
                 >
                   <MessageCircle className="w-4 h-4" />
                   {t('landing_trust_cta')}

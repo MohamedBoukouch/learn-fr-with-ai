@@ -30,6 +30,9 @@ import AdminCertificates from "./pages/admin/AdminCertificates";
 import AdminGeneralSettings from "./pages/admin/AdminGeneralSettings";
 import LandingPage from "./pages/LandingPage";
 import Profile from "./pages/Profile";
+import PrivacyPolicyPage from "./components/landing/PrivacyPolicyPage";
+import TermsOfServicePage from "./components/landing/TermsOfServicePage";
+import ContactPage from "./components/landing/ContactPage";
 
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = !!localStorage.getItem("token");
@@ -94,6 +97,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/pending" element={<PendingApproval />} />
+          <Route path="/privacy-policy" element={<PrivacyPolicyPage />} />
+          <Route path="/terms-of-service" element={<TermsOfServicePage />} />
+          <Route path="/contact" element={<ContactPage />} />
 
           {/* Learner Routes */}
           <Route

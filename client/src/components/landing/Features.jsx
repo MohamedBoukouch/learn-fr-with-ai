@@ -2,9 +2,22 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, BookOpen, FileCheck, Award, Sparkles, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useLandingTheme } from './useLandingTheme';
 
 const Features = () => {
   const { t } = useTranslation();
+  const { isLight } = useLandingTheme();
+  const shellClasses = isLight ? 'relative py-16 sm:py-20 lg:py-24 bg-slate-50 overflow-hidden' : 'relative py-16 sm:py-20 lg:py-24 bg-black overflow-hidden';
+  const badgeClasses = isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10';
+  const badgeText = isLight ? 'text-slate-700' : 'text-gray-300';
+  const headingText = isLight ? 'text-slate-900' : 'text-white';
+  const subtitleText = isLight ? 'text-slate-600' : 'text-gray-400';
+  const cardClasses = isLight
+    ? 'bg-white border-slate-200 hover:border-violet-200 hover:bg-slate-50 shadow-sm'
+    : 'bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.12]';
+  const bannerClasses = isLight
+    ? 'bg-white border-slate-200 shadow-sm'
+    : 'bg-gradient-to-r from-violet-600/10 to-purple-600/10 border-violet-500/20';
 
   const features = [
     {
@@ -42,7 +55,7 @@ const Features = () => {
   ];
 
   return (
-    <section id="features" className="relative py-16 sm:py-20 lg:py-24 bg-black overflow-hidden">
+    <section id="features" className={shellClasses}>
       {/* Background */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(120,119,198,0.15),transparent_50%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
@@ -55,16 +68,16 @@ const Features = () => {
           viewport={{ once: true }}
           className="text-center mb-12 sm:mb-16 lg:mb-20"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 mb-6">
+          <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border mb-6 ${badgeClasses}`}>
             <Sparkles className="w-4 h-4 text-violet-400" />
-            <span className="text-sm text-gray-300">{t('landing_features_badge')}</span>
+            <span className={`text-sm ${badgeText}`}>{t('landing_features_badge')}</span>
           </div>
           
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
+          <h2 className={`text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 tracking-tight ${headingText}`}>
             {t('landing_features_title')}
           </h2>
           
-          <p className="text-base sm:text-lg text-gray-400 max-w-2xl mx-auto">
+          <p className={`text-base sm:text-lg max-w-2xl mx-auto ${subtitleText}`}>
             {t('landing_features_subtitle')}
           </p>
         </motion.div>
@@ -78,7 +91,7 @@ const Features = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: index * 0.1 }}
-              className="group relative p-6 sm:p-8 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all duration-300"
+              className={`group relative p-6 sm:p-8 rounded-2xl border transition-all duration-300 ${cardClasses}`}
             >
               {/* Icon */}
               <div className={`inline-flex h-12 w-12 items-center justify-center rounded-xl ${feature.bg} mb-5 group-hover:scale-110 transition-transform duration-300`}>
@@ -86,10 +99,10 @@ const Features = () => {
               </div>
 
               {/* Content */}
-              <h3 className="text-lg font-semibold text-white mb-2">
+              <h3 className={`text-lg font-semibold mb-2 ${headingText}`}>
                 {feature.title}
               </h3>
-              <p className="text-sm text-gray-400 leading-relaxed">
+              <p className={`text-sm leading-relaxed ${subtitleText}`}>
                 {feature.description}
               </p>
 
@@ -105,7 +118,7 @@ const Features = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.3 }}
-          className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-violet-600/10 to-purple-600/10 border border-violet-500/20 p-6 sm:p-8 lg:p-10"
+          className={`relative overflow-hidden rounded-2xl border p-6 sm:p-8 lg:p-10 ${bannerClasses}`}
         >
           <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6">
             <div className="flex-shrink-0">
@@ -115,10 +128,10 @@ const Features = () => {
             </div>
             
             <div className="flex-1 text-center sm:text-left">
-              <h4 className="text-lg sm:text-xl font-bold text-white mb-1">
+              <h4 className={`text-lg sm:text-xl font-bold mb-1 ${headingText}`}>
                 {t('landing_coming_soon_title')}
               </h4>
-              <p className="text-sm text-gray-400">
+              <p className={`text-sm ${subtitleText}`}>
                 {t('landing_coming_soon_desc')}
               </p>
             </div>

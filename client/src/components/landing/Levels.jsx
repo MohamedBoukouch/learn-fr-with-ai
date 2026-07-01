@@ -2,10 +2,12 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Award, CheckCircle2, TrendingUp } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { useLandingTheme } from './useLandingTheme';
 
 const Levels = () => {
   const { t, i18n } = useTranslation();
   const isRtl = i18n.language === 'ar';
+  const { isLight } = useLandingTheme();
 
   const levels = [
     {
@@ -64,8 +66,15 @@ const Levels = () => {
     },
   ];
 
+  const shellClasses = isLight ? 'relative py-16 sm:py-20 lg:py-24 bg-slate-50 overflow-hidden' : 'relative py-16 sm:py-20 lg:py-24 bg-black overflow-hidden';
+  const badgeClasses = isLight ? 'bg-slate-100 border-slate-200' : 'bg-white/5 border-white/10';
+  const badgeText = isLight ? 'text-slate-700' : 'text-gray-300';
+  const headingText = isLight ? 'text-slate-900' : 'text-white';
+  const subtitleText = isLight ? 'text-slate-600' : 'text-gray-400';
+  const cardClasses = isLight ? 'bg-white border-slate-200 hover:bg-slate-50 hover:border-violet-200 shadow-sm' : 'bg-white/[0.03] border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.12]';
+
   return (
-    <section id="levels" className="relative py-16 sm:py-20 lg:py-24 bg-black overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
+    <section id="levels" className={shellClasses} dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Background */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(120,119,198,0.1),transparent_50%)]" />
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(to_right,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
@@ -78,16 +87,16 @@ const Levels = () => {
           viewport={{ once: true }}
           className="text-center mb-12 sm:mb-16 lg:mb-20"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 mb-6">
+          <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border mb-6 ${badgeClasses}`}>
             <TrendingUp className="w-4 h-4 text-violet-400" />
-            <span className="text-sm text-gray-300">{t('landing_levels_badge')}</span>
+            <span className={`text-sm ${badgeText}`}>{t('landing_levels_badge')}</span>
           </div>
           
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-4 tracking-tight">
+          <h2 className={`text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 tracking-tight ${headingText}`}>
             {t('landing_levels_title')}
           </h2>
           
-          <p className="text-base sm:text-lg text-gray-400 max-w-2xl mx-auto">
+          <p className={`text-base sm:text-lg max-w-2xl mx-auto ${subtitleText}`}>
             {t('landing_levels_subtitle')}
           </p>
         </motion.div>
@@ -102,7 +111,7 @@ const Levels = () => {
               viewport={{ once: true }}
               transition={{ delay: index * 0.05 }}
               whileHover={{ y: -2 }}
-              className={`group relative p-6 sm:p-8 rounded-2xl bg-white/[0.03] border border-white/[0.08] hover:bg-white/[0.06] hover:border-white/[0.12] transition-all duration-300`}
+              className={`group relative p-6 sm:p-8 rounded-2xl border transition-all duration-300 ${cardClasses}`}
             >
               {/* Level Badge */}
               <div className="flex items-start justify-between mb-5">
@@ -115,10 +124,10 @@ const Levels = () => {
               </div>
 
               {/* Content */}
-              <h4 className="text-lg font-semibold text-white mb-2">
+              <h4 className={`text-lg font-semibold mb-2 ${headingText}`}>
                 {item.title}
               </h4>
-              <p className="text-sm text-gray-400 leading-relaxed mb-5">
+              <p className={`text-sm leading-relaxed mb-5 ${subtitleText}`}>
                 {item.description}
               </p>
 
