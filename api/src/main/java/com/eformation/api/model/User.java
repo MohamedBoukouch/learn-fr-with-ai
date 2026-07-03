@@ -1,5 +1,6 @@
 package com.eformation.api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
@@ -13,7 +14,9 @@ import java.util.List;
 
 @Entity
 @Table(name = "users")
-@Data
+@Getter
+@Setter
+@ToString(exclude = "passwordHash")  // ← Exclure le mot de passe du toString()
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -30,6 +33,7 @@ public class User implements UserDetails {
     private String email;
 
     @Column(nullable = false)
+    @JsonIgnore  // ← NE JAMAIS exposer le hash du mot de passe
     private String passwordHash;
 
     @Enumerated(EnumType.STRING)
@@ -77,11 +81,13 @@ public class User implements UserDetails {
     }
 
     @Override
+    @JsonIgnore  // ← Ne pas sérialiser les autorités
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
     }
 
     @Override
+    @JsonIgnore  // ← Ne pas exposer le mot de passe
     public String getPassword() {
         return passwordHash;
     }
@@ -92,22 +98,39 @@ public class User implements UserDetails {
     }
 
     @Override
+    @JsonIgnore
     public boolean isAccountNonExpired() {
         return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isAccountNonLocked() {
         return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isCredentialsNonExpired() {
         return true;
     }
 
     @Override
+    @JsonIgnore
     public boolean isEnabled() {
         return role == Role.ADMIN || isApproved;
+    }
+
+    // Important : basé sur l'ID uniquement
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof User user)) return false;
+        return id != null && id.equals(user.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
     }
 }

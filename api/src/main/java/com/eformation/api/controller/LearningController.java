@@ -1,10 +1,14 @@
 package com.eformation.api.controller;
 
+import com.eformation.api.dto.LevelDetailsResponse;
 import com.eformation.api.model.*;
 import com.eformation.api.repository.*;
+import com.eformation.api.service.LevelService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -26,10 +30,13 @@ public class LearningController {
     @Autowired
     private VocabularyRepository vocabularyRepository;
 
+    @Autowired
+    private LevelService levelService;
+
     // --- Levels ---
     @GetMapping("/levels")
-    public List<Level> getAllLevels() {
-        return levelRepository.findAllByOrderByOrderIndexAsc();
+    public List<LevelDetailsResponse> getAllLevels() {
+        return levelService.getLevels();
     }
 
     @PostMapping("/levels")
@@ -55,8 +62,19 @@ public class LearningController {
 
     // --- Phrases ---
     @GetMapping("/domains/{domainId}/phrases")
+    @Transactional(readOnly = true)  // ← AJOUTER CETTE ANNOTATION
     public List<Phrase> getPhrasesByDomain(@PathVariable Long domainId) {
-        return phraseRepository.findByDomainIdOrderByOrderIndexAsc(domainId);
+        // Utiliser la nouvelle méthode au lieu de findByDomainIdOrderByOrderIndexAsc
+        List<Phrase> phrases = phraseRepository.findByDomainIdWithVocabulary(domainId);
+        
+        // Force l'initialisation pour être sûr
+        phrases.forEach(phrase -> {
+            if (phrase.getVocabularyList() != null) {
+                phrase.getVocabularyList().size();
+            }
+        });
+        
+        return phrases;
     }
 
     @PostMapping("/domains/{domainId}/phrases")

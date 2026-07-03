@@ -19,4 +19,11 @@ public interface PhraseRepository extends JpaRepository<Phrase, Long> {
 
     @Query("SELECT COUNT(p) FROM Phrase p JOIN p.domain d JOIN d.level l WHERE l.name = :levelName")
     Long countByLevelName(@Param("levelName") String levelName);
+
+    // ✅ NOUVELLE MÉTHODE À AJOUTER
+    @Query("SELECT DISTINCT p FROM Phrase p " +
+           "LEFT JOIN FETCH p.vocabularyList " +
+           "WHERE p.domain.id = :domainId " +
+           "ORDER BY p.orderIndex ASC")
+    List<Phrase> findByDomainIdWithVocabulary(@Param("domainId") Long domainId);
 }

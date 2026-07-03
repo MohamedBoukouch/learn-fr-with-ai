@@ -19,8 +19,16 @@ public interface QuizResultRepository extends JpaRepository<QuizResult, Long> {
     @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.isPassed = true")
     Long countPassed();
 
-    @Query("SELECT qr FROM QuizResult qr JOIN FETCH qr.user JOIN FETCH qr.quiz ORDER BY qr.completedAt DESC")
+    // ⚠️ Problème : JOIN FETCH sur deux relations ManyToOne peut causer MultipleBagFetchException
+    // Solution 1 : Charger séparément
+    @Query("SELECT DISTINCT qr FROM QuizResult qr " +
+           "JOIN FETCH qr.user " +
+           "ORDER BY qr.completedAt DESC")
     List<QuizResult> findRecentResults(Pageable pageable);
+
+    // Solution 2 alternative : Utiliser @EntityGraph (plus propre)
+    // @EntityGraph(attributePaths = {"user", "quiz"})
+    // List<QuizResult> findTop10ByOrderByCompletedAtDesc();
 
     @Query("SELECT COUNT(qr) FROM QuizResult qr WHERE qr.completedAt >= :since")
     Long countSince(@Param("since") LocalDateTime since);

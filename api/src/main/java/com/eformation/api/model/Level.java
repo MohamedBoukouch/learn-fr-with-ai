@@ -1,12 +1,17 @@
 package com.eformation.api.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
-import java.util.List;
+
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "levels")
-@Data
+@Getter
+@Setter
+@ToString(exclude = "domains")  // Évite la boucle dans toString()
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -16,13 +21,27 @@ public class Level {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String name; // e.g., Pre-A1, A1, B1...
+    private String name;
 
-    private String color; // Hex color code
+    private String color;
 
     @Column(nullable = false)
     private int orderIndex;
 
     @OneToMany(mappedBy = "level", cascade = CascadeType.ALL)
-    private List<Domain> domains;
+    @JsonIgnore
+    private Set<Domain> domains = new HashSet<>();
+
+    // Évite la récursion infinie
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Level level)) return false;
+        return id != null && id.equals(level.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

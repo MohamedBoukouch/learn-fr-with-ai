@@ -6,7 +6,9 @@ import lombok.*;
 
 @Entity
 @Table(name = "vocabulary")
-@Data
+@Getter
+@Setter
+@ToString(exclude = "phrase")  // ← Important : éviter la boucle
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -25,4 +27,17 @@ public class Vocabulary {
     @JoinColumn(name = "phrase_id", nullable = false)
     @JsonIgnore
     private Phrase phrase;
+
+    // Éviter la récursion infinie
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Vocabulary that)) return false;
+        return id != null && id.equals(that.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }

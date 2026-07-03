@@ -2,12 +2,13 @@ package com.eformation.api.controller;
 
 import com.eformation.api.model.*;
 import com.eformation.api.repository.*;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Map;
 
 @CrossOrigin(origins = "*", maxAge = 3600)
@@ -25,23 +26,38 @@ public class QuizController {
     private UserRepository userRepository;
 
     @GetMapping("/domain/{domainId}")
+    @Transactional
     public ResponseEntity<Quiz> getQuizByDomain(@PathVariable Long domainId) {
-        return quizRepository.findByDomainId(domainId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        Quiz quiz = quizRepository.findByDomainIdWithQuestions(domainId).orElse(null);
+        if (quiz == null) {
+            return ResponseEntity.notFound().build();
+        }
+        // FORCER l'initialisation
+        Hibernate.initialize(quiz.getQuestions());
+        quiz.getQuestions().forEach(q -> Hibernate.initialize(q.getOptions()));
+        return ResponseEntity.ok(quiz);
     }
 
     @GetMapping("/{quizId}")
+    @Transactional
     public ResponseEntity<Quiz> getQuizById(@PathVariable Long quizId) {
-        return quizRepository.findById(quizId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+        Quiz quiz = quizRepository.findByIdWithQuestions(quizId).orElse(null);
+        if (quiz == null) {
+            return ResponseEntity.notFound().build();
+        }
+        // FORCER l'initialisation
+        Hibernate.initialize(quiz.getQuestions());
+        quiz.getQuestions().forEach(q -> Hibernate.initialize(q.getOptions()));
+        return ResponseEntity.ok(quiz);
     }
 
     @PostMapping("/{quizId}/submit")
+    @Transactional
     public ResponseEntity<?> submitQuiz(@PathVariable Long quizId, @RequestBody Map<Long, String> answers) {
-        Quiz quiz = quizRepository.findById(quizId)
+        Quiz quiz = quizRepository.findByIdWithQuestions(quizId)
                 .orElseThrow(() -> new RuntimeException("Quiz not found"));
+        
+        Hibernate.initialize(quiz.getQuestions());
 
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 
@@ -54,7 +70,7 @@ public class QuizController {
         }
 
         int score = (int) (((double) correctCount / quiz.getQuestions().size()) * 100);
-        boolean isPassed = score >= 80; // 80% passing grade
+        boolean isPassed = score >= 80;
 
         QuizResult result = QuizResult.builder()
                 .user(user)

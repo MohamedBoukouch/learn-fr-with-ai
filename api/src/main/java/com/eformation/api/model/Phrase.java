@@ -3,13 +3,17 @@ package com.eformation.api.model;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
+
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
 @Table(name = "phrases", indexes = {
     @Index(name = "idx_phrases_domain_id", columnList = "domain_id")
 })
-@Data
+@Getter
+@Setter
+@ToString(exclude = {"domain", "vocabularyList"})  // Évite les boucles
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -33,5 +37,18 @@ public class Phrase {
     private Domain domain;
 
     @OneToMany(mappedBy = "phrase", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Vocabulary> vocabularyList;
+    private List<Vocabulary> vocabularyList = new ArrayList<>();
+
+    // Évite la récursion infinie
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Phrase phrase)) return false;
+        return id != null && id.equals(phrase.getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return getClass().hashCode();
+    }
 }
