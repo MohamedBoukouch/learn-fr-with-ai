@@ -15,10 +15,10 @@ public class Settings {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(name = "setting_key", nullable = false, unique = true)
     private String key;
 
-    @Column(nullable = false)
+    @Column(name = "setting_value", nullable = false)
     private String value;
 
     @Column(nullable = false)
@@ -33,7 +33,7 @@ public class Settings {
     @PrePersist
     protected void onCreate() {
         this.createdAt = java.time.LocalDateTime.now();
-        this.updatedAt = java.time.LocalDateTime.now();
+        this.updatedAt = this.createdAt;
     }
 
     @PreUpdate

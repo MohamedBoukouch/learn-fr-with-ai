@@ -11,10 +11,10 @@ import lombok.*;
 @Builder
 public class SystemSetting {
 
-    @Id
-    @Column(name = "setting_key")
+   @Id
+    @Column(name = "setting_key", length = 255)
     private String key;
 
-    @Column(nullable = false, length = 1000)
+    @Column(name = "setting_value", length = 1000, nullable = false)
     private String value;
 }
