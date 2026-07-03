@@ -73,6 +73,7 @@ const EmmaChat = () => {
   const [isTranscribing, setIsTranscribing] = useState(false);
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
+  const audioContextRef = useRef(null);
 
   const predefinedDomains = [
     {
@@ -170,6 +171,21 @@ const EmmaChat = () => {
       setSpeechSupported(true);
       setUseMediaRecorder(true);
     }
+
+    // Initialize AudioContext after first user interaction (iOS fix)
+    const initAudioContext = () => {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    };
+
+    document.addEventListener('click', initAudioContext, { once: true });
+    document.addEventListener('touchstart', initAudioContext, { once: true });
+
+    return () => {
+      document.removeEventListener('click', initAudioContext);
+      document.removeEventListener('touchstart', initAudioContext);
+    };
   }, []);
 
   // Scroll to bottom on new message
@@ -233,6 +249,20 @@ const EmmaChat = () => {
     }
   };
 
+  const checkMicrophonePermission = async () => {
+    try {
+      const status = await navigator.permissions.query({ name: 'microphone' });
+      if (status.state === 'denied') {
+        setSpeechError(t("emma_mic_blocked"));
+        return false;
+      }
+      return true;
+    } catch (e) {
+      // Fallback for browsers that don't support permissions.query
+      return true;
+    }
+  };
+
   const handleMediaRecorderToggle = async () => {
     if (isListening) {
       if (
@@ -243,6 +273,11 @@ const EmmaChat = () => {
       }
       return;
     }
+
+    // Check microphone permission before requesting access
+    const hasPermission = await checkMicrophonePermission();
+    if (!hasPermission) return;
+
     try {
       setSpeechError("");
       window.speechSynthesis.cancel();
@@ -283,7 +318,16 @@ const EmmaChat = () => {
       };
       mediaRecorder.start();
     } catch (err) {
-      setSpeechError(t("emma_mic_error"));
+      console.error("Microphone error:", err);
+      if (err.name === 'NotAllowedError') {
+        setSpeechError(t("emma_mic_blocked"));
+      } else if (err.name === 'NotFoundError') {
+        setSpeechError(t("emma_mic_not_found"));
+      } else if (err.name === 'NotReadableError') {
+        setSpeechError(t("emma_mic_in_use"));
+      } else {
+        setSpeechError(t("emma_mic_error"));
+      }
       setIsListening(false);
     }
   };
