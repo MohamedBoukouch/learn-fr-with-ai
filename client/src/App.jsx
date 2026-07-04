@@ -205,7 +205,6 @@ function App() {
             path="/admin/dashboard"
             element={
               <AdminRoute>
-                <AdminDashboard/>
                 <AdminOverview />
               </AdminRoute>
             }

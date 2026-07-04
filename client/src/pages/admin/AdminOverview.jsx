@@ -1,7 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import api from '../../api';
 import Layout from '../../components/Layout';
-import { Users, BookOpen, MessageSquare, Award, Activity, Calendar, Flame, TrendingUp, Clock } from 'lucide-react';
+import { 
+  Users, BookOpen, MessageSquare, Award, Activity, Calendar, Flame, 
+  TrendingUp, Clock, Eye, Globe, Smartphone, UserCheck, UserX 
+} from 'lucide-react';
+import { 
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, Legend, LineChart, Line 
+} from 'recharts';
+
+const COLORS = ['#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'];
 
 const StatCard = ({ label, value, icon: Icon, trend, color }) => (
   <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
@@ -55,16 +64,18 @@ const AdminOverview = () => {
   
   const [levelDistribution, setLevelDistribution] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
+  const [visitStats, setVisitStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAllStats = async () => {
       try {
-        const [statsRes, quizRes, levelRes, activityRes] = await Promise.all([
+        const [statsRes, quizRes, levelRes, activityRes, visitRes] = await Promise.all([
           api.get('/admin/stats'),
           api.get('/admin/stats/quiz-averages'),
           api.get('/admin/stats/level-distribution'),
-          api.get('/admin/stats/recent-activity')
+          api.get('/admin/stats/recent-activity'),
+          api.get('/tracking/stats').catch(() => ({ data: null })) // Ne pas bloquer si l'API n'est pas encore prête
         ]);
         
         const statsData = statsRes.data || {};
@@ -96,6 +107,7 @@ const AdminOverview = () => {
         
         setLevelDistribution(levelRes.data || []);
         setRecentActivity(activityRes.data || []);
+        setVisitStats(visitRes.data || null);
       } catch (err) {
         console.error('Failed to fetch dashboard data', err.response?.status, err.response?.data);
       } finally {
@@ -110,6 +122,8 @@ const AdminOverview = () => {
     if (num === null || num === undefined) return '0';
     return new Intl.NumberFormat().format(num);
   };
+
+  const formatDuration = (str) => str || '0s';
 
   const passRate = stats.totalQuizResults > 0 
     ? Math.round((quizStats.passedQuizzes / stats.totalQuizResults) * 100) 
@@ -165,6 +179,144 @@ const AdminOverview = () => {
             trend={`${stats.totalLevels} niveaux • ${stats.totalDomains} thèmes`}
           />
         </div>
+
+        {/* ==================== STATISTIQUES VISITEURS ==================== */}
+        {visitStats && (
+          <>
+            {/* Cartes visiteurs */}
+            <div>
+              <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <Globe className="w-5 h-5 text-blue-600" />
+                Trafic du Site
+              </h2>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  label="Visites (30j)"
+                  value={formatNumber(visitStats.visits30Days)}
+                  icon={Eye}
+                  color="blue"
+                  trend={`${formatNumber(visitStats.visitsToday)} aujourd'hui`}
+                />
+                <StatCard
+                  label="Visiteurs Uniques"
+                  value={formatNumber(visitStats.uniqueVisitors30d)}
+                  icon={Users}
+                  color="green"
+                  trend={`${formatNumber(visitStats.uniqueUsers30d)} connectés`}
+                />
+                <StatCard
+                  label="Temps Moyen"
+                  value={formatDuration(visitStats.avgDurationFormatted)}
+                  icon={Clock}
+                  color="orange"
+                  trend={`Total: ${formatDuration(visitStats.totalDurationFormatted)}`}
+                />
+                <StatCard
+                  label="Visites/Jour"
+                  value={Math.round(visitStats.visits30Days / 30)}
+                  icon={TrendingUp}
+                  color="purple"
+                  trend="Moyenne quotidienne"
+                />
+              </div>
+            </div>
+
+            {/* Graphiques visiteurs */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Visites par jour */}
+              <Section title="📅 Visites par Jour (30 jours)">
+                <ResponsiveContainer width="100%" height={280}>
+                  <BarChart data={visitStats.dailyStats}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tickFormatter={(d) => d?.substring(5)} fontSize={11} />
+                    <YAxis fontSize={11} />
+                    <Tooltip />
+                    <Bar dataKey="visits" fill="#3B82F6" radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Section>
+
+              {/* Visiteurs uniques */}
+              <Section title="👥 Visiteurs Uniques par Jour">
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={visitStats.dailyStats}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                    <XAxis dataKey="date" tickFormatter={(d) => d?.substring(5)} fontSize={11} />
+                    <YAxis fontSize={11} />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="uniqueSessions" stroke="#10B981" strokeWidth={2} dot={false} name="Sessions" />
+                    <Line type="monotone" dataKey="uniqueUsers" stroke="#8B5CF6" strokeWidth={2} dot={false} name="Connectés" />
+                  </LineChart>
+                </ResponsiveContainer>
+              </Section>
+            </div>
+
+            {/* Camemberts + Top Pages */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Type visiteurs */}
+              <Section title="👥 Type de Visiteurs">
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={[
+                        { name: 'Anonymes', value: visitStats.visitsAnonymous30d },
+                        { name: 'Connectés', value: visitStats.visitsAuthenticated30d }
+                      ]}
+                      cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value"
+                    >
+                      <Cell fill="#F59E0B" />
+                      <Cell fill="#3B82F6" />
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Section>
+
+              {/* Appareils */}
+              <Section title="📱 Appareils">
+                <ResponsiveContainer width="100%" height={220}>
+                  <PieChart>
+                    <Pie
+                      data={Object.entries(visitStats.devices || {}).map(([name, value]) => ({ name, value }))}
+                      cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={5} dataKey="value"
+                    >
+                      {Object.entries(visitStats.devices || {}).map((_, i) => (
+                        <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </Section>
+
+              {/* Top Pages */}
+              <Section title="🌐 Pages Populaires">
+                <div className="space-y-3">
+                  {visitStats.topPages?.slice(0, 6).map((page, i) => {
+                    const max = visitStats.topPages[0]?.count || 1;
+                    const width = (page.count / max) * 100;
+                    return (
+                      <div key={i}>
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="text-gray-600 truncate">{page.page}</span>
+                          <span className="font-bold text-gray-800">{page.count}</span>
+                        </div>
+                        <div className="h-2 bg-gray-100 rounded-full">
+                          <div className="h-2 bg-blue-500 rounded-full" style={{ width: `${width}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  {(!visitStats.topPages || visitStats.topPages.length === 0) && (
+                    <p className="text-gray-400 text-center py-4">Aucune donnée</p>
+                  )}
+                </div>
+              </Section>
+            </div>
+          </>
+        )}
 
         {/* Activity Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
