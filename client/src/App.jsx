@@ -4,6 +4,7 @@ import {
   Routes,
   Route,
   Navigate,
+  useLocation,
 } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import Login from "./pages/Login";
@@ -34,6 +35,18 @@ import PrivacyPolicyPage from "./components/landing/PrivacyPolicyPage";
 import TermsOfServicePage from "./components/landing/TermsOfServicePage";
 import ContactPage from "./components/landing/ContactPage";
 import AdminDashboard from "./pages/AdminDashboard";
+import { trackPageView } from "./utils/tracking"; // ← AJOUTER CET IMPORT
+
+// Composant qui gère le tracking des pages
+const PageTracker = () => {
+  const location = useLocation();
+
+  useEffect(() => {
+    trackPageView(location.pathname);
+  }, [location]);
+
+  return null; // Ce composant ne rend rien
+};
 
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = !!localStorage.getItem("token");
@@ -92,6 +105,9 @@ function App() {
             </button>
           ))}
         </div>
+
+        {/* ← AJOUTER LE PAGE TRACKER ICI */}
+        <PageTracker />
 
         <Routes>
           <Route path="/" element={<RootRoute />} />
