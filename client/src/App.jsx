@@ -33,6 +33,7 @@ import Profile from "./pages/Profile";
 import PrivacyPolicyPage from "./components/landing/PrivacyPolicyPage";
 import TermsOfServicePage from "./components/landing/TermsOfServicePage";
 import ContactPage from "./components/landing/ContactPage";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const ProtectedRoute = ({ children }) => {
   const isAuthenticated = !!localStorage.getItem("token");
@@ -204,6 +205,7 @@ function App() {
             path="/admin/dashboard"
             element={
               <AdminRoute>
+                <AdminDashboard/>
                 <AdminOverview />
               </AdminRoute>
             }
