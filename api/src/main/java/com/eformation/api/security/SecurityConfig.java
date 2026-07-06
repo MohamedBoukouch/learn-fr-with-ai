@@ -94,6 +94,7 @@ public class SecurityConfig {
                     .requestMatchers("/api/admin/**").hasRole("ADMIN")
                     .requestMatchers("/h2-console/**").permitAll()
                     .requestMatchers("/error").permitAll()
+                    .requestMatchers("/api/tracking/visit").permitAll()
                     .anyRequest().authenticated()
             );
 
