@@ -1,13 +1,19 @@
 variable "aws_region" {
-  description = "AWS region where the infrastructure will be created"
+  description = "AWS region where resources will be created"
   type        = string
   default     = "eu-west-3"
+}
+
+variable "aws_profile" {
+  description = "AWS CLI profile used by Terraform"
+  type        = string
+  default     = "terraform-dev"
 }
 
 variable "project_name" {
   description = "Project name"
   type        = string
-  default     = "Lear-fr"
+  default     = "my-project"
 }
 
 variable "environment" {

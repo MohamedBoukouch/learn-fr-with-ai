@@ -1,0 +1,5 @@
+aws_region  = "eu-west-3"
+aws_profile = "YOUR_AWS_PROFILE"
+project_name = "my-project"
+environment  = "dev"
+bucket_name = "your-unique-bucket-name-here"
