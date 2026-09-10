@@ -1,1 +1,9 @@
-git remote add origin https://github.com/MohamedBoukouch/learn-fr-with-ai.git
+# Terraform
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+crash.log
+
+terraform/terraform.tfvars
+
